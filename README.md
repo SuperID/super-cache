@@ -54,6 +54,8 @@ cache.set('key', data, ttl);
 存储引擎需要实现以下接口：
 
 ```javascript
+var store = {};
+
 // 取缓存
 store.get = function (name, callback) {
   // name为缓存名称
