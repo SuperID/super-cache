@@ -5,6 +5,7 @@
  */
 
 var should = require('should');
+var async = require('async');
 var SuperCache = require('../');
 
 describe('CacheManager', function () {
@@ -108,6 +109,40 @@ describe('CacheManager', function () {
           });
         });
       });
+    });
+
+  });
+
+
+  it('call get(name) many times in the same time, only call getData() once', function (done) {
+
+    var TIMES = 10;
+    var VALUE_7 = Math.random();
+    var counter_1 = 0;
+    var counter_2 = 0;
+
+    cache.define('key7', function (name, callback) {
+      name.should.equal('key7');
+      counter_1++;
+      setTimeout(function () {
+        callback(null, VALUE_7);
+      }, Math.random() * 500);
+    });
+
+    async.times(TIMES, function (i, next) {
+      cache.get('key7', function (err, ret) {
+        counter_2++;
+        should.equal(err, null);
+        ret.should.be.equal(VALUE_7);
+        next();
+      });
+    }, function (err) {
+      should.equal(err, null);
+
+      counter_1.should.equal(1);
+      counter_2.should.equal(TIMES);
+
+      done();
     });
 
   });
