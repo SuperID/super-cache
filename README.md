@@ -36,7 +36,7 @@ var SuperCache = require('super-cache');
 
 var cache = new SuperCache({
   // 存储引擎
-  store: new SuperCache.MemoryStore(100),
+  store: new SuperCache.MemoryStore(),
   // 缓存有效期，单位：秒
   ttl: 60
 });
@@ -77,10 +77,13 @@ cache.set('key', data, ttl);
 
 ```javascript
 // max为最大key数量
-var store = new SuperCache.MemoryStore(max);
+var store = new SuperCache.MemoryStore({
+  max: 1000,
+  gcProbability: 0.01
+});
 ```
 
-2、Redis存储引擎
+2、Redis存储引擎（暂未实现）
 
 ```javascript
 var store = new SuperCache.RedisStore({
@@ -91,7 +94,7 @@ var store = new SuperCache.RedisStore({
 });
 ```
 
-3、Memchache存储引擎
+3、Memchache存储引擎（暂未实现）
 
 ```javascript
 var store = new SuperCache.MemcacheStore({
