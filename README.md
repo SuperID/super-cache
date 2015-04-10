@@ -105,6 +105,12 @@ store.set = function (name, data, ttl, callback) {
   // 设置完缓存后，再调用callback返回
   callbacl(null);
 };
+
+// 删除缓存
+store.delete = function (name, callback) {
+  // name为缓存名称
+  // 删除完缓存后，再调用callback返回
+};
 ```
 
 

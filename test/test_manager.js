@@ -75,4 +75,41 @@ describe('CacheManager', function () {
 
   });
 
+
+  it('delete(name, callback)', function (done) {
+
+    var VALUE_6 = Math.random();
+    var counter = 0;
+
+    cache.define('key6', function (name, callback) {
+      name.should.equal('key6');
+      counter++;
+      callback(null, VALUE_6);
+    });
+
+    cache.get('key6', function (err, ret) {
+      should.equal(err, null);
+      ret.should.be.equal(VALUE_6);
+
+      cache.get('key6', function (err, ret) {
+        should.equal(err, null);
+        ret.should.be.equal(VALUE_6);
+
+        cache.delete('key6', function (err) {
+          should.equal(err, null);
+
+          cache.get('key6', function (err, ret) {
+            should.equal(err, null);
+            ret.should.be.equal(VALUE_6);
+
+            counter.should.equal(2);
+
+            done();
+          });
+        });
+      });
+    });
+
+  });
+
 });
