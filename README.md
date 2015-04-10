@@ -51,7 +51,7 @@ cache.set('key', data, ttl);
 ```
 
 
-## 内置支持的存储引擎
+## 内置的存储引擎
 
 1、Memory存储引擎
 
