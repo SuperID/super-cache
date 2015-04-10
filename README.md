@@ -14,6 +14,26 @@ $ npm install super-cache --save
 ```javascript
 var SuperCache = require('super-cache');
 
+var cache = new SuperCache({ttl: 60});
+
+// 定义缓存date的数据如何获取
+cache.define('date', function (name, callback) {
+  callback(null, new Date().toLocaleTimeString());
+});
+
+// 取缓存，如果缓存不存在则会先调用已设置的方法来获取
+cache.get('date', function (err, ret) {
+  if (err) throw err;
+  console.log(ret);
+});
+```
+
+
+## 详细使用方法
+
+```javascript
+var SuperCache = require('super-cache');
+
 var cache = new SuperCache({
   // 存储引擎
   store: new SuperCache.MemoryStore(100),

@@ -10,9 +10,7 @@ var SuperCache = require('../');
 
 describe('CacheManager', function () {
 
-  var cache = new SuperCache({
-    store: new SuperCache.MemoryStore(10)
-  });
+  var cache = new SuperCache();
 
 
   it('define(name, getData) & get(name, callback)', function (done) {
