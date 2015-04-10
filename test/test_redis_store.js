@@ -12,7 +12,7 @@ describe('MemcacheStore', function () {
 
   var MAX = 5;
   var TTL = 1;
-  var store = new SuperCache.MemcacheStore();
+  var store = new SuperCache.RedisStore();
 
 
   it('get(name, callback) & set(name, data, ttl, callback) & del(name, callback)', function (done) {

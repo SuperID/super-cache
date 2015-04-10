@@ -85,7 +85,7 @@ var store = new SuperCache.MemoryStore({
 });
 ```
 
-2、Redis存储引擎（暂未实现）
+2、Redis存储引擎
 
 ```javascript
 var store = new SuperCache.RedisStore({
