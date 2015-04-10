@@ -80,8 +80,8 @@ cache.set('key', data, ttl);
 ```javascript
 // max为最大key数量
 var store = new SuperCache.MemoryStore({
-  max: 1000,
-  gcProbability: 0.01
+  max: 1000,            // 最大key数量
+  gcProbability: 0.01   // 执行GC的几率，0.01表示1%
 });
 ```
 
@@ -89,20 +89,20 @@ var store = new SuperCache.MemoryStore({
 
 ```javascript
 var store = new SuperCache.RedisStore({
-  host: '127.0.0.1',
-  port: 6379,
-  db: 0,
-  prefix: 'cache:'
+  host: '127.0.0.1',  // 服务器地址
+  port: 6379,         // 服务器端口
+  db: 0,              // 数据库号码
+  prefix: 'cache:'    // key前缀
 });
 ```
 
-3、Memchache存储引擎（暂未实现）
+3、Memchache存储引擎
 
 ```javascript
 var store = new SuperCache.MemcacheStore({
-  host: '127.0.0.1',
-  port: 11211,
-  prefix: 'cache:'
+  host: '127.0.0.1',  // 服务器地址
+  port: 11211,        // 服务器端口
+  prefix: 'cache:'    // key前缀
 });
 ```
 

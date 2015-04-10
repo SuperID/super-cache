@@ -4,7 +4,7 @@
   "description": "Flexible cache module for Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -t 5000"
+    "test": "mocha -t 30000"
   },
   "repository": {
     "type": "git",
