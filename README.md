@@ -15,8 +15,10 @@ $ npm install super-cache --save
 var SuperCache = require('super-cache');
 
 var cache = new SuperCache({
-  store: 'memory', // 默认为momory，内置支持memory, redis, memcache，可自定义
-  ttl: 60          // 缓存有效期，单位：秒
+  // 存储引擎
+  store: new SuperCache.MemoryStore(100),
+  // 缓存有效期，单位：秒
+  ttl: 60
 });
 
 // 定义获取缓存key的方法
@@ -46,6 +48,37 @@ cache.get('key', function (name, callback) {
 
 // 设置缓存，如果没有指定ttl则使用默认的ttl
 cache.set('key', data, ttl);
+```
+
+
+## 内置支持的存储引擎
+
+1、Memory存储引擎
+
+```javascript
+// max为最大key数量
+var store = new SuperCache.MemoryStore(max);
+```
+
+2、Redis存储引擎
+
+```javascript
+var store = new SuperCache.RedisStore({
+  host: '127.0.0.1',
+  port: 6379,
+  db: 0,
+  prefix: 'cache:'
+});
+```
+
+3、Memchache存储引擎
+
+```javascript
+var store = new SuperCache.MemcacheStore({
+  host: '127.0.0.1',
+  port: 11211,
+  prefix: 'cache:'
+});
 ```
 
 
