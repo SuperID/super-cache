@@ -147,4 +147,19 @@ describe('CacheManager', function () {
 
   });
 
+
+  it('get(name, callback) cache not defined, return error', function (done) {
+
+    cache.get('key8', function (err, ret) {
+      should.exists(err, null);
+
+      cache.get('key9', function (err, ret) {
+        should.exists(err, null);
+        done();
+      });
+    });
+
+  });
+
+
 });
