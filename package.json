@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/SuperID/super-cache/issues"
   },
-  "homepage": "https://github.com/SuperID/super-cache"
+  "homepage": "https://github.com/SuperID/super-cache",
+  "dependencies": {
+    "debug": "^2.1.3"
+  }
 }

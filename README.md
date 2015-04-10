@@ -20,11 +20,11 @@ var cache = new SuperCache({
 });
 
 // 定义获取缓存key的方法
-// 其中ttl参数可以省略，如果省略则使用默认的ttl
-cache.define('key', ttl, function (name, callback) {
+cache.define('key', function (name, callback) {
   // name是当前缓存的名称
   // 此处查询数据库，再调用callback返回数据
-  callback(null, data);
+  // 如果没有指定ttl则使用默认的ttl
+  callback(null, data, ttl);
 });
 
 // 获取缓存，如果缓存不存在则先执行预设的方法取得缓存再返回
@@ -58,6 +58,7 @@ cache.set('key', data, ttl);
 store.get = function (name, callback) {
   // name为缓存名称
   // 此处查询数据库，再调用callback返回数据
+  // 若data为undefined表示该缓存不存在
   callback(null, data);
 };
 
