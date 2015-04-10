@@ -53,6 +53,7 @@ cache.define('key', function (name, callback) {
 cache.get('key', function (err, data) {
   // 如果出错，err为出错信息
   // data为缓存数据
+  console.log(data);
 });
 
 // 获取缓存，如果缓存不存在则使用当前设置的方法取得缓存再返回
@@ -64,6 +65,7 @@ cache.get('key', function (name, callback) {
 }, function (err, data) {
   // 如果出错，err为出错信息
   // data为缓存数据
+  console.log(data);
 });
 
 // 设置缓存，如果没有指定ttl则使用默认的ttl
