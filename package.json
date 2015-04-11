@@ -1,7 +1,7 @@
 {
   "name": "super-cache",
-  "version": "0.0.2",
-  "description": "Flexible cache module for Node.js",
+  "version": "0.0.3",
+  "description": "Flexible cache manager for Node.js",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha -t 30000"

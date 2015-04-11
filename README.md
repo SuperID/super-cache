@@ -1,5 +1,5 @@
 # super-cache
-Node.js缓存模块，支持自定义存储引擎
+Node.js缓存管理模块，支持自定义存储引擎
 
 
 ## 在Node.js中使用
@@ -113,6 +113,7 @@ cache.get('key', function (name, callback) {
   // data为缓存数据
   console.log(data);
 });
+```
 
 5、设置缓存：
 
@@ -147,7 +148,7 @@ var store = new SuperCache.MemoryStore({
 });
 ```
 
-2、Redis存储引擎
+2、Redis存储引擎（仅Node.js中使用）
 
 ```javascript
 var store = new SuperCache.RedisStore({
@@ -158,13 +159,23 @@ var store = new SuperCache.RedisStore({
 });
 ```
 
-3、Memchache存储引擎
+3、Memchache存储引擎（仅Node.js中使用）
 
 ```javascript
 var store = new SuperCache.MemcacheStore({
   host: '127.0.0.1',  // 服务器地址
   port: 11211,        // 服务器端口
   prefix: 'cache:'    // key前缀
+});
+```
+
+4、localStorage/sessionStorage存储引擎（仅浏览器中使用，暂未实现）
+
+```javascript
+// max为最大key数量
+var store = new SuperCache.MemoryStore({
+  max: 1000,            // 最大key数量
+  gcProbability: 0.01   // 执行GC的几率，0.01表示1%
 });
 ```
 
