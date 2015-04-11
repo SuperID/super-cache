@@ -36,7 +36,7 @@ var cache = new SuperCache({ttl: 60});
 ```html
 <script>
 require.config({
-  baseUrl: './'
+  baseUrl: './dist/'
 })
 require(['supercache'], function (SuperCache) {
   var cache = new SuperCache({ttl: 60});
