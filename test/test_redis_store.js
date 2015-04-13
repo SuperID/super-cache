@@ -48,7 +48,7 @@ describe('MemcacheStore', function () {
         });
       },
       function (next) {
-        store.get('key3', function (err, ret) {
+        store.get('key2_2', function (err, ret) {
           should.equal(err, null);
           should.not.exists(ret);
           next();
