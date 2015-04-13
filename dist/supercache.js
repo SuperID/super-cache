@@ -7,10 +7,12 @@
 
 var CacheManager = require('./lib/manager');
 var MemoryStore = require('./lib/store/memory');
+var LocalStore = require('./lib/store/local');
 
 
 module.exports = exports = CacheManager;
 exports.MemoryStore = MemoryStore;
+exports.LocalStore = LocalStore;
 
 exports.create = function (options) {
   return new CacheManager(options);
@@ -30,7 +32,7 @@ if (typeof window !== 'undefined') {
   window.SuperCache = module.exports;
 }
 
-},{"./lib/manager":4,"./lib/store/memory":5}],2:[function(require,module,exports){
+},{"./lib/manager":4,"./lib/store/local":5,"./lib/store/memory":6}],2:[function(require,module,exports){
 /**
  * Super-Cache
  *
@@ -95,7 +97,7 @@ module.exports = function (name) {
   return debug('super-cache:' + name);
 };
 
-},{"debug":7}],4:[function(require,module,exports){
+},{"debug":10}],4:[function(require,module,exports){
 /**
  * Super-Cache
  *
@@ -273,7 +275,223 @@ CacheManager.prototype.delete = function (name, callback) {
 
 module.exports = CacheManager;
 
-},{"./call":2,"./debug":3,"./store/memory":5}],5:[function(require,module,exports){
+},{"./call":2,"./debug":3,"./store/memory":6}],5:[function(require,module,exports){
+(function (process){
+/**
+ * Super-Cache
+ *
+ * @author Zongmin Lei <leizongmin@gmail.com>
+ */
+
+var hasLocalStorage = require('has-localstorage');
+var LocalStorage = require('node-localstorage').LocalStorage;
+var debug = require('../debug')('LocalStore');
+
+
+debug('hasLocalStorage=%s', hasLocalStorage());
+
+
+var DEFAULT_TYPE = 'local';
+var DEFAULT_PREFIX = 'cache_';
+var DEFAULT_PATH = './data';
+var DEFAULT_MAX = 1000;
+var DEFAULT_PROBABILITY = 0.01;
+
+
+function getStorage (type, dir) {
+  type = type.toLowerCase();
+  if (type === 'local') {
+    return hasLocalStorage() ? localStorage : new LocalStorage(dir);
+  } else if (type === 'session') {
+    return hasLocalStorage() ? sessionStorage : new LocalStorage(dir);
+  } else {
+    throw new Error('unsupport storage type `' + type + '`');
+  }
+}
+
+
+/**
+ * LocalStore
+ *
+ * @param {Object} options
+ *   - {Number} max
+ *   - {Number} gcProbability
+ */
+function LocalStore (options) {
+  options = options || {};
+
+  options.max = Number(options.max);
+  if (isNaN(options.max)) options.max = DEFAULT_MAX;
+  this._max = options.max;
+
+  options.gcProbability = Number(options.gcProbability);
+  if (isNaN(options.gcProbability)) options.gcProbability = DEFAULT_PROBABILITY;
+  this._gcProbability = options.gcProbability;
+
+  options.path = options.path || DEFAULT_PATH;
+  this._path = options.path;
+
+  options.type = options.type || DEFAULT_TYPE;
+  this._type = options.type;
+  this._storage = getStorage(this._type, this._path);
+
+  options.prefix = options.prefix || DEFAULT_PREFIX;
+  this._prefix = options.prefix;
+
+  debug('init: type=%s, prefix=%s, path=%s, max=%s, gcProbability=%s', this._type, this._prefix, this._path, this._max, this._gcProbability);
+
+  this._setKeyTotal(this._itemLength());
+  debug('keyTotal=%s', this._getKeyTotal());
+}
+
+LocalStore.prototype._getItem = function (name) {
+  var json = this._storage.getItem(this._prefix + name);
+  if (!json) return;
+  try {
+    return JSON.parse(json);
+  } catch (err) {
+    debug('_getItem error: %s', err);
+  }
+};
+
+LocalStore.prototype._setItem = function (name, value) {
+  var json = JSON.stringify(value);
+  this._storage.setItem(this._prefix + name, json);
+};
+
+LocalStore.prototype._removeItem = function (name) {
+  this._storage.removeItem(this._prefix + name);
+};
+
+LocalStore.prototype._forEachItem = function (fn) {
+  var storage = this._storage;
+  var prefix = this._prefix;
+  var len = storage.length;
+  for (var i = 0; i < len; i++) {
+    var key = storage.key(i);
+    if (key.substr(0, prefix.length) === prefix) {
+      fn(this._getItem(key.slice(prefix.length)), key);
+    }
+  }
+};
+
+LocalStore.prototype._getKeyTotal = function () {
+  var n = Number(this._storage.getItem('$$' + this._prefix + '_key_total'));
+  if (isNaN(n)) n = 0;
+  return n;
+};
+
+LocalStore.prototype._setKeyTotal = function (n) {
+  this._storage.setItem('$$' + this._prefix + '_key_total', n);
+};
+
+LocalStore.prototype._itemLength = function () {
+  var storage = this._storage;
+  var prefix = this._prefix;
+  var len = storage.length;
+  var ret = 0;
+  for (var i = 0; i < len; i++) {
+    var key = storage.key(i);
+    if (key.substr(0, prefix.length) === prefix) {
+      ret++;
+    }
+  }
+  return ret;
+};
+
+LocalStore.prototype.get = function (name, callback) {
+  var me = this;
+  process.nextTick(function () {
+    var t = Date.now();
+    var info = me._getItem(name);
+    debug('get: name=%s, exists=%s', name, !!info);
+    if (info && info.expire < t) {
+      info = undefined;
+      me._removeItem(name);
+    }
+    callback(null, info && info.data);
+  });
+
+  if (this._isGCProbability()) this._gc();
+};
+
+LocalStore.prototype.set = function (name, data, ttl, callback) {
+  var me = this;
+  me._setItem(name, {
+    name: name,
+    data: data,
+    expire: Date.now() + ttl * 1000
+  });
+  debug('set: name=%s, ttl=%s, data=%j', name, ttl, data);
+  if (me._getKeyTotal() > me._max) {
+    me._gc();
+  }
+  process.nextTick(function () {
+    callback(null);
+  });
+};
+
+LocalStore.prototype.delete = function (name, callback) {
+  var me = this;
+  debug('delete: name=%s', name);
+  me._removeItem(name);
+  me._setKeyTotal(me._getKeyTotal() - 1);
+  process.nextTick(function () {
+    callback(null);
+  });
+};
+
+LocalStore.prototype._isGCProbability = function () {
+  return ((1 / this._gcProbability) * Math.random() <= 1);
+};
+
+LocalStore.prototype._gc = function () {
+  var me = this;
+  var prefix = me._prefix;
+
+  var keys = {};
+  var keyTotal = 0;
+  me._forEachItem(function (item, name) {
+    keys[name] = item;
+    keyTotal++;
+  });
+
+  debug('_gc: total=%s', keyTotal);
+
+  var t = Date.now();
+  for (var i in keys) {
+    if (keys[i].expire < t) {
+      debug('_gc delete: key=%s, expire=%s [expired]', i, keys[i].expire);
+      delete keys[i];
+      me._removeItem(i.slice(prefix.length));
+      keyTotal--;
+    }
+  }
+
+  if (keyTotal > me._max) {
+    var list = Object.keys(keys).map(function (k) {
+      return keys[k];
+    });
+    list.sort(function (a, b) {
+      return a.expire - b.expire;
+    });
+    var deleteList = list.slice(0, keyTotal - me._max);
+    deleteList.forEach(function (item) {
+      debug('_gc delete: key=%s, expire=%s [store full]', item.name, item.expire);
+      delete keys[item.name];
+      me._removeItem(item.name);
+      keyTotal--;
+    });
+  }
+
+  me._setKeyTotal(me._itemLength());
+  debug('keyTotal=%s', me._getKeyTotal());
+};
+
+module.exports = LocalStore;
+
+}).call(this,require('_process'))
+},{"../debug":3,"_process":9,"has-localstorage":13,"node-localstorage":14}],6:[function(require,module,exports){
 (function (process){
 /**
  * Super-Cache
@@ -315,8 +533,14 @@ function MemoryStore (options) {
 MemoryStore.prototype.get = function (name, callback) {
   var me = this;
   process.nextTick(function () {
+    var t = Date.now();
     var info = me._keys[name];
     debug('get: name=%s, exists=%s', name, !!info);
+    if (info && info.expire < t) {
+      info = undefined;
+      delete me._keys[name];
+      me._keyTotal--;
+    }
     callback(null, info && info.data);
   });
 
@@ -389,7 +613,237 @@ MemoryStore.prototype._gc = function () {
 module.exports = MemoryStore;
 
 }).call(this,require('_process'))
-},{"../debug":3,"_process":6}],6:[function(require,module,exports){
+},{"../debug":3,"_process":9}],7:[function(require,module,exports){
+
+},{}],8:[function(require,module,exports){
+(function (process){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Split a filename into [root, dir, basename, ext], unix version
+// 'root' is just a slash, or nothing.
+var splitPathRe =
+    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+var splitPath = function(filename) {
+  return splitPathRe.exec(filename).slice(1);
+};
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function(path) {
+  var result = splitPath(path),
+      root = result[0],
+      dir = result[1];
+
+  if (!root && !dir) {
+    // No dirname whatsoever
+    return '.';
+  }
+
+  if (dir) {
+    // It has a dirname, strip trailing slash
+    dir = dir.substr(0, dir.length - 1);
+  }
+
+  return root + dir;
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPath(path)[2];
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPath(path)[3];
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+
+}).call(this,require('_process'))
+},{"_process":9}],9:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -449,7 +903,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],7:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -626,7 +1080,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":8}],8:[function(require,module,exports){
+},{"./debug":11}],11:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -825,7 +1279,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":9}],9:[function(require,module,exports){
+},{"ms":12}],12:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -950,4 +1404,252 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}]},{},[1]);
+},{}],13:[function(require,module,exports){
+/**
+ * # hasLocalStorage()
+ *
+ * returns `true` or `false` depending on whether localStorage is supported or not.
+ * Beware that some browsers like Safari do not support localStorage in private mode.
+ *
+ * inspired by this cappuccino commit
+ * https://github.com/cappuccino/cappuccino/commit/063b05d9643c35b303568a28809e4eb3224f71ec
+ *
+ * @returns {Boolean}
+ */
+function hasLocalStorage() {
+  try {
+
+    // we've to put this in here. I've seen Firefox throwing `Security error: 1000`
+    // when cookies have been disabled
+    if (typeof localStorage === 'undefined') {
+      return false;
+    }
+
+    // Just because localStorage exists does not mean it works. In particular it might be disabled
+    // as it is when Safari's private browsing mode is active.
+    localStorage.setItem('Storage-Test', '1');
+
+    // that should not happen ...
+    if (localStorage.getItem('Storage-Test') !== '1') {
+      return false;
+    }
+
+    // okay, let's clean up if we got here.
+    localStorage.removeItem('Storage-Test');
+  } catch (_error) {
+
+    // in case of an error, like Safari's Private Mode, return false
+    return false;
+  }
+
+  // we're good.
+  return true;
+}
+
+
+if (typeof exports === 'object') {
+  module.exports = hasLocalStorage;
+}
+
+},{}],14:[function(require,module,exports){
+// Generated by CoffeeScript 1.9.0
+(function() {
+  var JSONStorage, LocalStorage, QUOTA_EXCEEDED_ERR, fs, path, _emptyDirectory, _rm,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    __hasProp = {}.hasOwnProperty;
+
+  path = require('path');
+
+  fs = require('fs');
+
+  _emptyDirectory = function(target) {
+    var p, _i, _len, _ref, _results;
+    _ref = fs.readdirSync(target);
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      p = _ref[_i];
+      _results.push(_rm(path.join(target, p)));
+    }
+    return _results;
+  };
+
+  _rm = function(target) {
+    if (fs.statSync(target).isDirectory()) {
+      _emptyDirectory(target);
+      return fs.rmdirSync(target);
+    } else {
+      return fs.unlinkSync(target);
+    }
+  };
+
+  QUOTA_EXCEEDED_ERR = (function(_super) {
+    __extends(QUOTA_EXCEEDED_ERR, _super);
+
+    function QUOTA_EXCEEDED_ERR(_at_message) {
+      this.message = _at_message != null ? _at_message : 'Unknown error.';
+      if (Error.captureStackTrace != null) {
+        Error.captureStackTrace(this, this.constructor);
+      }
+      this.name = this.constructor.name;
+    }
+
+    QUOTA_EXCEEDED_ERR.prototype.toString = function() {
+      return this.name + ": " + this.message;
+    };
+
+    return QUOTA_EXCEEDED_ERR;
+
+  })(Error);
+
+  LocalStorage = (function() {
+    function LocalStorage(_at_location, _at_quota) {
+      this.location = _at_location;
+      this.quota = _at_quota != null ? _at_quota : 5 * 1024 * 1024;
+      if (!(this instanceof LocalStorage)) {
+        return new LocalStorage(this.location, this.quota);
+      }
+      this.length = 0;
+      this.bytesInUse = 0;
+      this.keys = [];
+      this._init();
+      this.QUOTA_EXCEEDED_ERR = QUOTA_EXCEEDED_ERR;
+    }
+
+    LocalStorage.prototype._init = function() {
+      var k, value, _i, _len, _ref, _results;
+      if (fs.existsSync(this.location)) {
+        if (!fs.statSync(this.location).isDirectory()) {
+          throw new Error("A file exists at the location '" + this.location + "' when trying to create/open localStorage");
+        }
+      }
+      if (!fs.existsSync(this.location)) {
+        fs.mkdirSync(this.location);
+      }
+      this.keys = fs.readdirSync(this.location).map(decodeURIComponent);
+      this.length = this.keys.length;
+      this.bytesInUse = 0;
+      _ref = this.keys;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        k = _ref[_i];
+        value = this.getStat(k);
+        if ((value != null ? value.size : void 0) != null) {
+          _results.push(this.bytesInUse += value.size);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
+    LocalStorage.prototype.setItem = function(key, value) {
+      var existsBeforeSet, filename, oldLength, valueString, valueStringLength;
+      key = key.toString();
+      filename = path.join(this.location, encodeURIComponent(key));
+      existsBeforeSet = fs.existsSync(filename);
+      valueString = value.toString();
+      valueStringLength = valueString.length;
+      if (existsBeforeSet) {
+        oldLength = this.getStat(key).size;
+      } else {
+        oldLength = 0;
+      }
+      if (this.bytesInUse - oldLength + valueStringLength > this.quota) {
+        throw new QUOTA_EXCEEDED_ERR();
+      }
+      fs.writeFileSync(filename, valueString, 'utf8');
+      if (!existsBeforeSet) {
+        this.keys.push(key);
+        this.length = this.keys.length;
+        return this.bytesInUse += valueStringLength;
+      }
+    };
+
+    LocalStorage.prototype.getItem = function(key) {
+      var filename;
+      key = key.toString();
+      filename = path.join(this.location, encodeURIComponent(key));
+      if (fs.existsSync(filename)) {
+        return fs.readFileSync(filename, 'utf8');
+      } else {
+        return null;
+      }
+    };
+
+    LocalStorage.prototype.getStat = function(key) {
+      var filename;
+      key = key.toString();
+      filename = path.join(this.location, encodeURIComponent(key));
+      if (fs.existsSync(filename)) {
+        return fs.statSync(filename, 'utf8');
+      } else {
+        return null;
+      }
+    };
+
+    LocalStorage.prototype.removeItem = function(key) {
+      var filename;
+      key = key.toString();
+      filename = path.join(this.location, encodeURIComponent(key));
+      if (fs.existsSync(filename)) {
+        _rm(filename);
+      }
+      return this._init();
+    };
+
+    LocalStorage.prototype.key = function(n) {
+      return this.keys[n];
+    };
+
+    LocalStorage.prototype.clear = function() {
+      _emptyDirectory(this.location);
+      this.keys = [];
+      this.length = 0;
+      return this.bytesInUse = 0;
+    };
+
+    LocalStorage.prototype.getBytesInUse = function() {
+      return this.bytesInUse;
+    };
+
+    LocalStorage.prototype._deleteLocation = function() {
+      _rm(this.location);
+      this.keys = [];
+      this.length = 0;
+      return this.bytesInUse = 0;
+    };
+
+    return LocalStorage;
+
+  })();
+
+  JSONStorage = (function(_super) {
+    __extends(JSONStorage, _super);
+
+    function JSONStorage() {
+      return JSONStorage.__super__.constructor.apply(this, arguments);
+    }
+
+    JSONStorage.prototype.setItem = function(key, value) {
+      var newValue;
+      newValue = JSON.stringify(value);
+      return JSONStorage.__super__.setItem.call(this, key, newValue);
+    };
+
+    JSONStorage.prototype.getItem = function(key) {
+      return JSON.parse(JSONStorage.__super__.getItem.call(this, key));
+    };
+
+    return JSONStorage;
+
+  })(LocalStorage);
+
+  exports.LocalStorage = LocalStorage;
+
+  exports.JSONStorage = JSONStorage;
+
+  exports.QUOTA_EXCEEDED_ERR = QUOTA_EXCEEDED_ERR;
+
+}).call(this);
+
+},{"fs":7,"path":8}]},{},[1]);
