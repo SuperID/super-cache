@@ -169,12 +169,15 @@ var store = new SuperCache.MemcacheStore({
 });
 ```
 
-4、localStorage/sessionStorage存储引擎（仅浏览器中使用，暂未实现）
+4、localStorage/sessionStorage存储引擎
 
 ```javascript
 // max为最大key数量
-var store = new SuperCache.MemoryStore({
-  max: 1000,            // 最大key数量
+var store = new SuperCache.LocalStore({
+  type: 'local',        // 类型，local=localStorage, session=sessionStorage, 默认local
+  prefix: 'cache_',     // key前缀，默认cache_
+  path: './data',       // 数据存储路径，仅Node.js中使用时需要指定
+  max: 1000,            // 最大key数量，默认1000
   gcProbability: 0.01   // 执行GC的几率，0.01表示1%
 });
 ```
