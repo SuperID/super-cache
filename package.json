@@ -1,6 +1,6 @@
 {
   "name": "super-cache",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Flexible cache manager for Node.js",
   "main": "index.js",
   "scripts": {
