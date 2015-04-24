@@ -169,7 +169,7 @@ var store = new SuperCache.MemcacheStore({
 });
 ```
 
-4、localStorage/sessionStorage存储引擎
+4、localStorage/sessionStorage存储引擎（仅浏览器中使用）
 
 ```javascript
 // max为最大key数量
@@ -204,7 +204,7 @@ store.set = function (name, data, ttl, callback) {
   // data为缓存数据
   // ttl为缓存有效期
   // 设置完缓存后，再调用callback返回
-  callbacl(null);
+  callback(null);
 };
 
 // 删除缓存
@@ -213,6 +213,11 @@ store.delete = function (name, callback) {
   // 删除完缓存后，再调用callback返回
 };
 ```
+
+
+## TODO
+
++ 内置存储引擎支持连接池
 
 
 ## License
