@@ -1,3 +1,8 @@
+[![NPM version](https://badge.fury.io/js/super-cache.png)](http://badge.fury.io/js/xss)
+[![Build Status](https://secure.travis-ci.org/SuperID/super-cache.png?branch=master)](http://travis-ci.org/SuperID/super-cache)
+[![Dependencies Status](https://david-dm.org/SuperID/super-cache.png)](https://david-dm.org/SuperID/super-cache)
+[![testling badge](https://ci.testling.com/SuperID/super-cache.png)](https://ci.testling.com/SuperID/super-cache)
+
 # super-cache
 Node.js缓存管理模块，支持自定义存储引擎
 
