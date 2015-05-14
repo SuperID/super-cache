@@ -168,7 +168,9 @@ var store = new SuperCache.RedisStore({
 var store = new SuperCache.MemcacheStore({
   host: '127.0.0.1',  // 服务器地址
   port: 11211,        // 服务器端口
-  prefix: 'cache:'    // key前缀
+  prefix: 'cache:',   // key前缀
+  user: 'xxx',        // 用户名
+  password: 'xxx'     // 密码
 });
 ```
 
