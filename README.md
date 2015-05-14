@@ -158,7 +158,8 @@ var store = new SuperCache.RedisStore({
   host: '127.0.0.1',  // 服务器地址
   port: 6379,         // 服务器端口
   db: 0,              // 数据库号码
-  prefix: 'cache:'    // key前缀
+  prefix: 'cache:',   // key前缀
+  auth_pass: 'xxx'    // 密码
 });
 ```
 
