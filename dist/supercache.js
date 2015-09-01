@@ -97,7 +97,7 @@ module.exports = function (name) {
   return debug('super-cache:' + name);
 };
 
-},{"debug":10}],4:[function(require,module,exports){
+},{"debug":11}],4:[function(require,module,exports){
 /**
  * Super-Cache
  *
@@ -491,7 +491,7 @@ LocalStore.prototype._gc = function () {
 module.exports = LocalStore;
 
 }).call(this,require('_process'))
-},{"../debug":3,"_process":9,"has-localstorage":13,"node-localstorage":14}],6:[function(require,module,exports){
+},{"../debug":3,"_process":10,"has-localstorage":14,"node-localstorage":15}],6:[function(require,module,exports){
 (function (process){
 /**
  * Super-Cache
@@ -613,9 +613,312 @@ MemoryStore.prototype._gc = function () {
 module.exports = MemoryStore;
 
 }).call(this,require('_process'))
-},{"../debug":3,"_process":9}],7:[function(require,module,exports){
+},{"../debug":3,"_process":10}],7:[function(require,module,exports){
 
 },{}],8:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        len = arguments.length;
+        args = new Array(len - 1);
+        for (i = 1; i < len; i++)
+          args[i - 1] = arguments[i];
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    len = arguments.length;
+    args = new Array(len - 1);
+    for (i = 1; i < len; i++)
+      args[i - 1] = arguments[i];
+
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    var m;
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (isFunction(emitter._events[type]))
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}],9:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -843,7 +1146,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":9}],9:[function(require,module,exports){
+},{"_process":10}],10:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -903,7 +1206,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -917,17 +1220,10 @@ exports.formatArgs = formatArgs;
 exports.save = save;
 exports.load = load;
 exports.useColors = useColors;
-
-/**
- * Use chrome.storage.local if we are in an app
- */
-
-var storage;
-
-if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined')
-  storage = chrome.storage.local;
-else
-  storage = localstorage();
+exports.storage = 'undefined' != typeof chrome
+               && 'undefined' != typeof chrome.storage
+                  ? chrome.storage.local
+                  : localstorage();
 
 /**
  * Colors.
@@ -1035,9 +1331,9 @@ function log() {
 function save(namespaces) {
   try {
     if (null == namespaces) {
-      storage.removeItem('debug');
+      exports.storage.removeItem('debug');
     } else {
-      storage.debug = namespaces;
+      exports.storage.debug = namespaces;
     }
   } catch(e) {}
 }
@@ -1052,7 +1348,7 @@ function save(namespaces) {
 function load() {
   var r;
   try {
-    r = storage.debug;
+    r = exports.storage.debug;
   } catch(e) {}
   return r;
 }
@@ -1080,7 +1376,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":11}],11:[function(require,module,exports){
+},{"./debug":12}],12:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -1279,7 +1575,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":12}],12:[function(require,module,exports){
+},{"ms":13}],13:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -1320,6 +1616,8 @@ module.exports = function(val, options){
  */
 
 function parse(str) {
+  str = '' + str;
+  if (str.length > 10000) return;
   var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(str);
   if (!match) return;
   var n = parseFloat(match[1]);
@@ -1404,7 +1702,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /**
  * # hasLocalStorage()
  *
@@ -1451,16 +1749,19 @@ if (typeof exports === 'object') {
   module.exports = hasLocalStorage;
 }
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
+(function (process){
 // Generated by CoffeeScript 1.9.0
 (function() {
-  var JSONStorage, LocalStorage, QUOTA_EXCEEDED_ERR, fs, path, _emptyDirectory, _rm,
+  var JSONStorage, LocalStorage, QUOTA_EXCEEDED_ERR, StorageEvent, events, fs, path, _emptyDirectory, _rm,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __hasProp = {}.hasOwnProperty;
 
   path = require('path');
 
   fs = require('fs');
+
+  events = require('events');
 
   _emptyDirectory = function(target) {
     var p, _i, _len, _ref, _results;
@@ -1501,7 +1802,24 @@ if (typeof exports === 'object') {
 
   })(Error);
 
-  LocalStorage = (function() {
+  StorageEvent = (function() {
+    function StorageEvent(_at_key, _at_oldValue, _at_newValue, _at_url, _at_storageArea) {
+      this.key = _at_key;
+      this.oldValue = _at_oldValue;
+      this.newValue = _at_newValue;
+      this.url = _at_url;
+      this.storageArea = _at_storageArea != null ? _at_storageArea : 'localStorage';
+    }
+
+    return StorageEvent;
+
+  })();
+
+  LocalStorage = (function(_super) {
+    var MetaKey, createMap;
+
+    __extends(LocalStorage, _super);
+
     function LocalStorage(_at_location, _at_quota) {
       this.location = _at_location;
       this.quota = _at_quota != null ? _at_quota : 5 * 1024 * 1024;
@@ -1511,46 +1829,77 @@ if (typeof exports === 'object') {
       this.length = 0;
       this.bytesInUse = 0;
       this.keys = [];
+      this.metaKeyMap = createMap();
+      this.eventUrl = "pid:" + process.pid;
       this._init();
       this.QUOTA_EXCEEDED_ERR = QUOTA_EXCEEDED_ERR;
     }
 
+    MetaKey = (function() {
+      function MetaKey(_at_key, _at_index) {
+        this.key = _at_key;
+        this.index = _at_index;
+        if (!(this instanceof MetaKey)) {
+          return new MetaKey(this.key, this.index);
+        }
+      }
+
+      return MetaKey;
+
+    })();
+
+    createMap = function() {
+      var Map;
+      Map = function() {};
+      Map.prototype = Object.create(null);
+      return new Map();
+    };
+
     LocalStorage.prototype._init = function() {
-      var k, value, _i, _len, _ref, _results;
+      var index, k, stat, _MetaKey, _decodedKey, _i, _keys, _len;
       if (fs.existsSync(this.location)) {
         if (!fs.statSync(this.location).isDirectory()) {
           throw new Error("A file exists at the location '" + this.location + "' when trying to create/open localStorage");
         }
       }
+      this.bytesInUse = 0;
+      this.length = 0;
       if (!fs.existsSync(this.location)) {
         fs.mkdirSync(this.location);
+        return;
       }
-      this.keys = fs.readdirSync(this.location).map(decodeURIComponent);
-      this.length = this.keys.length;
-      this.bytesInUse = 0;
-      _ref = this.keys;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        k = _ref[_i];
-        value = this.getStat(k);
-        if ((value != null ? value.size : void 0) != null) {
-          _results.push(this.bytesInUse += value.size);
-        } else {
-          _results.push(void 0);
+      _keys = fs.readdirSync(this.location);
+      for (index = _i = 0, _len = _keys.length; _i < _len; index = ++_i) {
+        k = _keys[index];
+        _decodedKey = decodeURIComponent(k);
+        this.keys.push(_decodedKey);
+        _MetaKey = new MetaKey(k, index);
+        this.metaKeyMap[_decodedKey] = _MetaKey;
+        stat = this.getStat(k);
+        if ((stat != null ? stat.size : void 0) != null) {
+          _MetaKey.size = stat.size;
+          this.bytesInUse += stat.size;
         }
       }
-      return _results;
+      return this.length = _keys.length;
     };
 
     LocalStorage.prototype.setItem = function(key, value) {
-      var existsBeforeSet, filename, oldLength, valueString, valueStringLength;
+      var encodedKey, evnt, existsBeforeSet, filename, hasListeners, metaKey, oldLength, oldValue, valueString, valueStringLength;
+      hasListeners = events.EventEmitter.listenerCount(this, 'storage');
+      oldValue = null;
+      if (hasListeners) {
+        oldValue = this.getItem(key);
+      }
       key = key.toString();
-      filename = path.join(this.location, encodeURIComponent(key));
-      existsBeforeSet = fs.existsSync(filename);
+      encodedKey = encodeURIComponent(key);
+      filename = path.join(this.location, encodedKey);
       valueString = value.toString();
       valueStringLength = valueString.length;
+      metaKey = this.metaKeyMap[key];
+      existsBeforeSet = !!metaKey;
       if (existsBeforeSet) {
-        oldLength = this.getStat(key).size;
+        oldLength = metaKey.size;
       } else {
         oldLength = 0;
       }
@@ -1559,17 +1908,24 @@ if (typeof exports === 'object') {
       }
       fs.writeFileSync(filename, valueString, 'utf8');
       if (!existsBeforeSet) {
-        this.keys.push(key);
-        this.length = this.keys.length;
-        return this.bytesInUse += valueStringLength;
+        metaKey = new MetaKey(encodedKey, (this.keys.push(key)) - 1);
+        metaKey.size = valueStringLength;
+        this.metaKeyMap[key] = metaKey;
+        this.length += 1;
+        this.bytesInUse += valueStringLength;
+      }
+      if (hasListeners) {
+        evnt = new StorageEvent(key, oldValue, value, this.eventUrl);
+        return this.emit('storage', evnt);
       }
     };
 
     LocalStorage.prototype.getItem = function(key) {
-      var filename;
+      var filename, metaKey;
       key = key.toString();
-      filename = path.join(this.location, encodeURIComponent(key));
-      if (fs.existsSync(filename)) {
+      metaKey = this.metaKeyMap[key];
+      if (!!metaKey) {
+        filename = path.join(this.location, metaKey.key);
         return fs.readFileSync(filename, 'utf8');
       } else {
         return null;
@@ -1581,20 +1937,41 @@ if (typeof exports === 'object') {
       key = key.toString();
       filename = path.join(this.location, encodeURIComponent(key));
       if (fs.existsSync(filename)) {
-        return fs.statSync(filename, 'utf8');
+        return fs.statSync(filename);
       } else {
         return null;
       }
     };
 
     LocalStorage.prototype.removeItem = function(key) {
-      var filename;
+      var evnt, filename, hasListeners, k, meta, metaKey, oldValue, v, _ref;
       key = key.toString();
-      filename = path.join(this.location, encodeURIComponent(key));
-      if (fs.existsSync(filename)) {
+      metaKey = this.metaKeyMap[key];
+      if (!!metaKey) {
+        hasListeners = events.EventEmitter.listenerCount(this, 'storage');
+        oldValue = null;
+        if (hasListeners) {
+          oldValue = this.getItem(key);
+        }
+        delete this.metaKeyMap[key];
+        this.length -= 1;
+        this.bytesInUse -= metaKey.size;
+        filename = path.join(this.location, metaKey.key);
+        this.keys.splice(metaKey.index, 1);
+        _ref = this.metaKeyMap;
+        for (k in _ref) {
+          v = _ref[k];
+          meta = this.metaKeyMap[k];
+          if (meta.index > metaKey.index) {
+            meta.index -= 1;
+          }
+        }
         _rm(filename);
+        if (hasListeners) {
+          evnt = new StorageEvent(key, oldValue, null, this.eventUrl);
+          return this.emit('storage', evnt);
+        }
       }
-      return this._init();
     };
 
     LocalStorage.prototype.key = function(n) {
@@ -1602,10 +1979,16 @@ if (typeof exports === 'object') {
     };
 
     LocalStorage.prototype.clear = function() {
+      var evnt;
       _emptyDirectory(this.location);
+      this.metaKeyMap = createMap();
       this.keys = [];
       this.length = 0;
-      return this.bytesInUse = 0;
+      this.bytesInUse = 0;
+      if (events.EventEmitter.listenerCount(this, 'storage')) {
+        evnt = new StorageEvent(null, null, null, this.eventUrl);
+        return this.emit('storage', evnt);
+      }
     };
 
     LocalStorage.prototype.getBytesInUse = function() {
@@ -1614,6 +1997,7 @@ if (typeof exports === 'object') {
 
     LocalStorage.prototype._deleteLocation = function() {
       _rm(this.location);
+      this.metaKeyMap = {};
       this.keys = [];
       this.length = 0;
       return this.bytesInUse = 0;
@@ -1621,7 +2005,7 @@ if (typeof exports === 'object') {
 
     return LocalStorage;
 
-  })();
+  })(events.EventEmitter);
 
   JSONStorage = (function(_super) {
     __extends(JSONStorage, _super);
@@ -1652,4 +2036,5 @@ if (typeof exports === 'object') {
 
 }).call(this);
 
-},{"fs":7,"path":8}]},{},[1]);
+}).call(this,require('_process'))
+},{"_process":10,"events":8,"fs":7,"path":9}]},{},[1]);
