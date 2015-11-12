@@ -14,7 +14,7 @@ describe('CacheManager', function () {
   function generateTest (title, store) {
 
     var cache = new SuperCache({store: store});
-    var KEY = 'test:key:' + Math.random();
+    var KEY = 'test-key-' + Math.random();
 
     it('#' + title + ' define(name, getData) & get(name, callback)', function (done) {
 
@@ -168,7 +168,7 @@ describe('CacheManager', function () {
   generateTest('MemcacheStore', new SuperCache.MemcacheStore());
   generateTest('LocalStore', new SuperCache.LocalStore({
     type: 'local',
-    prefix: 'cache_',
+    prefix: 'cache_' + Math.random(),
     path: path.resolve(__dirname, 'data'),
     max: 5,
     gcProbability: 0.5

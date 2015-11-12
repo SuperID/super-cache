@@ -13,6 +13,7 @@ describe('MemcacheStore', function () {
   var MAX = 5;
   var TTL = 1;
   var store = new SuperCache.RedisStore();
+  var KEY = 'test-key-' + Math.random();
 
 
   it('get(name, callback) & set(name, data, ttl, callback) & del(name, callback)', function (done) {
@@ -22,53 +23,53 @@ describe('MemcacheStore', function () {
 
     async.series([
       function (next) {
-        store.set('key1', VALUE_1, TTL, function (err) {
+        store.set(KEY + '1', VALUE_1, TTL, function (err) {
           should.equal(err, null);
           next();
         });
       },
       function (next) {
-        store.set('key2', VALUE_2, TTL, function (err) {
+        store.set(KEY + '2', VALUE_2, TTL, function (err) {
           should.equal(err, null);
           next();
         });
       },
       function (next) {
-        store.get('key1', function (err, ret) {
+        store.get(KEY + '1', function (err, ret) {
           should.equal(err, null);
           ret.should.equal(VALUE_1);
           next();
         });
       },
       function (next) {
-        store.get('key2', function (err, ret) {
+        store.get(KEY + '2', function (err, ret) {
           should.equal(err, null);
           ret.should.equal(VALUE_2);
           next();
         });
       },
       function (next) {
-        store.get('key2_2', function (err, ret) {
+        store.get(KEY + '2_2', function (err, ret) {
           should.equal(err, null);
           should.equal(ret, null);
           next();
         });
       },
       function (next) {
-        store.delete('key2', function (err) {
+        store.delete(KEY + '2', function (err) {
           should.equal(err, null);
           next();
         });
       },
       function (next) {
-        store.get('key2', function (err, ret) {
+        store.get(KEY + '2', function (err, ret) {
           should.equal(err, null);
           should.equal(ret, null);
           next();
         });
       },
       function (next) {
-        store.get('key1', function (err, ret) {
+        store.get(KEY + '1', function (err, ret) {
           should.equal(err, null);
           ret.should.equal(VALUE_1);
           next();

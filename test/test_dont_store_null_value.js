@@ -13,11 +13,12 @@ describe('options #notNull', function () {
 
   function generateTest (title, store) {
 
+    var cache = new SuperCache({store: store});
+
     it(title + ' #1 not null value', function (done) {
 
-      var cache = new SuperCache({store: store});
       var VALUE = Math.random();
-      var KEY = 'test:key:' + Math.random();
+      var KEY = 'test-key-' + Math.random();
 
       cache.get(KEY, function (name, callback) {
         callback(null, VALUE);
@@ -39,9 +40,8 @@ describe('options #notNull', function () {
 
     it(title + ' #2 null value', function (done) {
 
-      var cache = new SuperCache({store: store});
       var VALUE = Math.random();
-      var KEY = 'test:key:' + Math.random();
+      var KEY = 'test-key-' + Math.random();
 
       cache.get(KEY, function (name, callback) {
         callback(null, null);

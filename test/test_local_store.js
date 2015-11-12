@@ -15,7 +15,7 @@ describe('LocalStore', function () {
   var TTL = 1;
   var store = new SuperCache.LocalStore({
     type: 'local',
-    prefix: 'cache_',
+    prefix: 'cache_' + Math.random(),
     path: path.resolve(__dirname, 'data'),
     max: MAX,
     gcProbability: 0.5
