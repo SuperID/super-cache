@@ -14,31 +14,32 @@ describe('CacheManager', function () {
   function generateTest (title, store) {
 
     var cache = new SuperCache({store: store});
+    var KEY = 'test:key:' + Math.random();
 
     it('#' + title + ' define(name, getData) & get(name, callback)', function (done) {
 
       var VALUE_1 = Math.random();
       var VALUE_2 = Math.random();
 
-      cache.define('key1', function (name, calback) {
-        name.should.equal('key1');
+      cache.define(KEY + '1', function (name, calback) {
+        name.should.equal(KEY + '1');
         calback(null, VALUE_1);
       });
 
-      cache.define('key2', function (name, calback) {
-        name.should.equal('key2');
+      cache.define(KEY + '2', function (name, calback) {
+        name.should.equal(KEY + '2');
         calback(null, VALUE_2);
       });
 
-      cache.get('key1', function (err, ret) {
+      cache.get(KEY + '1', function (err, ret) {
         should.equal(err, null);
         ret.should.be.equal(VALUE_1);
 
-        cache.get('key2', function (err, ret) {
+        cache.get(KEY + '2', function (err, ret) {
           should.equal(err, null);
           ret.should.be.equal(VALUE_2);
 
-          cache.get('key3', function (err, ret) {
+          cache.get(KEY + '3', function (err, ret) {
             should.exists(err);
 
             done();
@@ -54,16 +55,16 @@ describe('CacheManager', function () {
       var VALUE_4 = Math.random();
       var VALUE_5 = Math.random();
 
-      cache.define('key4', function (name, calback) {
-        name.should.equal('key4');
+      cache.define(KEY + '4', function (name, calback) {
+        name.should.equal(KEY + '4');
         calback(null, VALUE_4);
       });
 
-      cache.get('key4', function (err, ret) {
+      cache.get(KEY + '4', function (err, ret) {
         should.equal(err, null);
         ret.should.be.equal(VALUE_4);
 
-        cache.get('key5', function (name, callback) {
+        cache.get(KEY + '5', function (name, callback) {
           name.should.equal(name);
           callback(null, VALUE_5);
         }, function (err, ret) {
@@ -82,24 +83,24 @@ describe('CacheManager', function () {
       var VALUE_6 = Math.random();
       var counter = 0;
 
-      cache.define('key6', function (name, callback) {
-        name.should.equal('key6');
+      cache.define(KEY + '6', function (name, callback) {
+        name.should.equal(KEY + '6');
         counter++;
         callback(null, VALUE_6);
       });
 
-      cache.get('key6', function (err, ret) {
+      cache.get(KEY + '6', function (err, ret) {
         should.equal(err, null);
         ret.should.be.equal(VALUE_6);
 
-        cache.get('key6', function (err, ret) {
+        cache.get(KEY + '6', function (err, ret) {
           should.equal(err, null);
           ret.should.be.equal(VALUE_6);
 
-          cache.delete('key6', function (err) {
+          cache.delete(KEY + '6', function (err) {
             should.equal(err, null);
 
-            cache.get('key6', function (err, ret) {
+            cache.get(KEY + '6', function (err, ret) {
               should.equal(err, null);
               ret.should.be.equal(VALUE_6);
 
@@ -121,8 +122,8 @@ describe('CacheManager', function () {
       var counter_1 = 0;
       var counter_2 = 0;
 
-      cache.define('key7', function (name, callback) {
-        name.should.equal('key7');
+      cache.define(KEY + '7', function (name, callback) {
+        name.should.equal(KEY + '7');
         counter_1++;
         setTimeout(function () {
           callback(null, VALUE_7);
@@ -130,7 +131,7 @@ describe('CacheManager', function () {
       });
 
       async.times(TIMES, function (i, next) {
-        cache.get('key7', function (err, ret) {
+        cache.get(KEY + '7', function (err, ret) {
           counter_2++;
           should.equal(err, null);
           ret.should.be.equal(VALUE_7);
@@ -150,10 +151,10 @@ describe('CacheManager', function () {
 
     it('#' + title + ' get(name, callback) cache not defined, return error', function (done) {
 
-      cache.get('key8', function (err, ret) {
+      cache.get(KEY + '8', function (err, ret) {
         should.exists(err, null);
 
-        cache.get('key9', function (err, ret) {
+        cache.get(KEY + '9', function (err, ret) {
           should.exists(err, null);
           done();
         });
@@ -162,9 +163,9 @@ describe('CacheManager', function () {
     });
   }
 
-  generateTest('MemoryStore', SuperCache.MemoryStore());
-  generateTest('RedisStore', SuperCache.RedisStore());
-  generateTest('MemcacheStore', SuperCache.MemcacheStore());
+  generateTest('MemoryStore', new SuperCache.MemoryStore());
+  generateTest('RedisStore', new SuperCache.RedisStore());
+  generateTest('MemcacheStore', new SuperCache.MemcacheStore());
   generateTest('LocalStore', new SuperCache.LocalStore({
     type: 'local',
     prefix: 'cache_',
