@@ -50,7 +50,7 @@ describe('MemcacheStore', function () {
       function (next) {
         store.get('key2_2', function (err, ret) {
           should.equal(err, null);
-          should.not.exists(ret);
+          should.equal(ret, null);
           next();
         });
       },
@@ -63,7 +63,7 @@ describe('MemcacheStore', function () {
       function (next) {
         store.get('key2', function (err, ret) {
           should.equal(err, null);
-          should.not.exists(ret);
+          should.equal(ret, null);
           next();
         });
       },
