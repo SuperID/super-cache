@@ -86,6 +86,7 @@ var cache = new SuperCache({
 cache.define('key', function (name, callback) {
   // name是当前缓存的名称
   // 此处查询数据库，再调用callback返回数据
+  // 如果data为undefined活null，则不会被缓存
   // 如果没有指定ttl则使用默认的ttl
   callback(null, data, ttl);
 });
@@ -109,6 +110,7 @@ cache.get('key', function (err, data) {
 cache.get('key', function (name, callback) {
   // name是当前缓存的名称
   // 此处查询数据库，在调用callback返回数据
+  // 如果data为undefined活null，则不会被缓存
   // 如果没有指定ttl则使用默认的ttl
   callback(null, data, ttl);
 }, function (err, data) {
@@ -200,7 +202,7 @@ var store = {};
 store.get = function (name, callback) {
   // name为缓存名称
   // 此处查询数据库，再调用callback返回数据
-  // 若data为undefined表示该缓存不存在
+  // 若data为undefined或null表示该缓存不存在
   callback(null, data);
 };
 
