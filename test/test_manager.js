@@ -4,6 +4,7 @@
  * @author Zongmin Lei <leizongmin@gmail.com>
  */
 
+var path = require('path');
 var should = require('should');
 var async = require('async');
 var SuperCache = require('../');
@@ -164,5 +165,12 @@ describe('CacheManager', function () {
   generateTest('MemoryStore', SuperCache.MemoryStore());
   generateTest('RedisStore', SuperCache.RedisStore());
   generateTest('MemcacheStore', SuperCache.MemcacheStore());
+  generateTest('LocalStore', new SuperCache.LocalStore({
+    type: 'local',
+    prefix: 'cache_',
+    path: path.resolve(__dirname, 'data'),
+    max: 5,
+    gcProbability: 0.5
+  }));
 
 });
