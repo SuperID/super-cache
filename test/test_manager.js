@@ -174,4 +174,7 @@ describe('CacheManager', function () {
     gcProbability: 0.5
   }));
 
+  generateTest('RedisStore [pool=2]', new SuperCache.RedisStore({pool: 2}));
+  generateTest('MemcacheStore [pool=2]', new SuperCache.MemcacheStore({pool: 2}));
+
 });
