@@ -161,7 +161,8 @@ var store = new SuperCache.RedisStore({
   port: 6379,         // 服务器端口
   db: 0,              // 数据库号码
   prefix: 'cache:',   // key前缀
-  password: 'xxx'     // 密码
+  password: 'xxx',    // 密码
+  pool: 1             // 连接池数量
 });
 ```
 
@@ -173,7 +174,8 @@ var store = new SuperCache.MemcacheStore({
   port: 11211,        // 服务器端口
   prefix: 'cache:',   // key前缀
   user: 'xxx',        // 用户名
-  password: 'xxx'     // 密码
+  password: 'xxx',    // 密码
+  pool: 1             // 连接池数量
 });
 ```
 
