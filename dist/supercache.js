@@ -73,12 +73,12 @@ CallQueue.prototype.call = function (name, callback, getData) {
 
 CallQueue.prototype._queueCallback = function (name, args) {
   var list = this._keys[name];
+  delete this._keys[name];
   if (!list) throw new Error('queue is empty');
   debug('_queueCallback: queue=%s, name=%s, args=%j', list.length, name, args);
   for (var i = 0; i < list.length; i++) {
     list[i].apply(null, args);
   }
-  delete this._keys[name];
 };
 
 
@@ -110,6 +110,10 @@ var debug = require('./debug')('manager');
 
 
 var DEFAULT_TTL = 60;
+
+function isEmptyValue (v) {
+  return (v === undefined || v === null);
+}
 
 
 /**
@@ -240,7 +244,7 @@ CacheManager.prototype._get = function (name, getData, callback) {
   me._getCache(name, function (err, data) {
     if (err) return callback(err);
 
-    if (typeof data !== 'undefined') return callback(null, data);
+    if (!isEmptyValue(data)) return callback(null, data);
 
     if (!getData) {
       getData = function (name, callback) {
@@ -250,10 +254,21 @@ CacheManager.prototype._get = function (name, getData, callback) {
       };
     }
 
-    getData(name, function (err, data, ttl) {
+    getData(name, function (err, data, options) {
       if (err) return callback(err);
 
-      me._setCache(name, data, ttl, function (err) {
+      if (typeof options === 'number') {
+        options = {ttl: options};
+      } else {
+        options = options || {};
+      }
+
+      if (isEmptyValue(data)) {
+        debug('getData() notNull=%s & data=%s return', options.notNull, data);
+        return callback(null, data);
+      }
+
+      me._setCache(name, data, options.ttl, function (err) {
         callback(err, data);
       });
     });
@@ -342,6 +357,8 @@ function LocalStore (options) {
 
   this._setKeyTotal(this._itemLength());
   debug('keyTotal=%s', this._getKeyTotal());
+
+  return this;
 }
 
 LocalStore.prototype._getItem = function (name) {
@@ -528,6 +545,8 @@ function MemoryStore (options) {
 
   this._keys = {};
   this._keyTotal = 0;
+
+  return this;
 }
 
 MemoryStore.prototype.get = function (name, callback) {
