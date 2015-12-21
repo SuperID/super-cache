@@ -89,6 +89,8 @@ cache.define('key', function (name, callback) {
   // 如果data为undefined活null，则不会被缓存
   // 如果没有指定ttl则使用默认的ttl
   callback(null, data, ttl);
+  // 默认data=null或undefined时也会缓存结果，如果想不缓存，指定notNull参数
+  callback(null, {ttl: ttl, notNull: true});
 });
 ```
 
