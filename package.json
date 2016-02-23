@@ -4,7 +4,8 @@
   "description": "Flexible cache manager for Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -t 30000"
+    "test": "mocha -t 30000",
+    "coverage": "istanbul cover _mocha -- -t 30000"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "async": "^1.5.2",
     "browserify": "^13.0.0",
+    "istanbul": "^0.4.2",
     "mocha": "^2.4.5",
     "should": "^8.2.2",
     "uglify-js": "^2.6.2"
