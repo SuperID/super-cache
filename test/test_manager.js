@@ -11,9 +11,9 @@ var SuperCache = require('../');
 
 describe('CacheManager', function () {
 
-  function generateTest (title, store) {
+  function generateTest (title, options) {
 
-    var cache = new SuperCache({store: store});
+    var cache = new SuperCache(options);
     var KEY = 'test-key-' + Math.random();
 
     it('#' + title + ' define(name, getData) & get(name, callback)', function (done) {
@@ -163,18 +163,29 @@ describe('CacheManager', function () {
     });
   }
 
-  generateTest('MemoryStore', new SuperCache.MemoryStore());
-  generateTest('RedisStore', new SuperCache.RedisStore());
-  generateTest('MemcacheStore', new SuperCache.MemcacheStore());
-  generateTest('LocalStore', new SuperCache.LocalStore({
+  generateTest('MemoryStore', {store: new SuperCache.MemoryStore()});
+  generateTest('RedisStore', {store: new SuperCache.RedisStore()});
+  generateTest('MemcacheStore', {store: new SuperCache.MemcacheStore()});
+  generateTest('LocalStore', {store: new SuperCache.LocalStore({
     type: 'local',
     prefix: 'cache_' + Math.random(),
     path: path.resolve(__dirname, 'data'),
     max: 5,
     gcProbability: 0.5
-  }));
+  })});
 
-  generateTest('RedisStore [pool=2]', new SuperCache.RedisStore({pool: 2}));
-  generateTest('MemcacheStore [pool=2]', new SuperCache.MemcacheStore({pool: 2}));
+  generateTest('MemoryStore', {store: 'memory'});
+  generateTest('RedisStore', {store: 'redis'});
+  generateTest('MemcacheStore', {store: 'memcache'});
+  generateTest('LocalStore', {store: 'local', storeConfig: {
+    type: 'local',
+    prefix: 'cache_' + Math.random(),
+    path: path.resolve(__dirname, 'data'),
+    max: 5,
+    gcProbability: 0.5
+  }});
+
+  generateTest('RedisStore [pool=2]', {store: new SuperCache.RedisStore(), pool: 2});
+  generateTest('MemcacheStore [pool=2]', {store: new SuperCache.MemcacheStore(), pool: 2});
 
 });

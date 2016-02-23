@@ -145,6 +145,24 @@ cache.delete('key', function (err) {
 
 ## 内置的存储引擎
 
+使用内置的存储引擎可以设置`store`为一个字符串，比如：
+
+```javascript
+var cache = new SuperCache({
+  // 存储引擎
+  store: 'memory',
+  // 存储引擎的初始化参数
+  storeConfig: {
+    max: 1000,
+    gcProbability: 0.01
+  },
+  // 缓存有效期，单位：秒
+  ttl: 60
+});
+```
+
+内置存储引擎包括`memory`，`redis`，`memcache`，`local`。
+
 1、Memory存储引擎
 
 ```javascript
@@ -232,7 +250,7 @@ store.delete = function (name, callback) {
 ```
 The MIT License (MIT)
 
-Copyright (c) 2015 SuperID | 一切只为简单登录
+Copyright (c) 2015-2016 SuperID | 一切只为简单登录
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
