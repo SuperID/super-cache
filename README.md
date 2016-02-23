@@ -227,11 +227,6 @@ store.delete = function (name, callback) {
 ```
 
 
-## TODO
-
-+ 内置存储引擎支持连接池
-
-
 ## License
 
 ```

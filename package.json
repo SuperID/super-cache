@@ -4,7 +4,7 @@
   "description": "Flexible cache manager for Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha -t 30000"
+    "test": "mocha -t 30000"
   },
   "repository": {
     "type": "git",
