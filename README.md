@@ -1,5 +1,26 @@
-[![NPM version](https://badge.fury.io/js/super-cache.png)](http://badge.fury.io/js/xss)
-[![Dependencies Status](https://david-dm.org/SuperID/super-cache.png)](https://david-dm.org/SuperID/super-cache)
+[![NPM version][npm-image]][npm-url]
+[![build status][travis-image]][travis-url]
+[![Test coverage][coveralls-image]][coveralls-url]
+[![Gittip][gittip-image]][gittip-url]
+[![David deps][david-image]][david-url]
+[![node version][node-image]][node-url]
+[![npm download][download-image]][download-url]
+
+[npm-image]: https://img.shields.io/npm/v/super-cache.svg?style=flat-square
+[npm-url]: https://npmjs.org/package/super-cache
+[travis-image]: https://img.shields.io/travis/SuperID/super-cache.svg?style=flat-square
+[travis-url]: https://travis-ci.org/SuperID/super-cache
+[coveralls-image]: https://img.shields.io/coveralls/SuperID/super-cache.svg?style=flat-square
+[coveralls-url]: https://coveralls.io/r/SuperID/super-cache?branch=master
+[gittip-image]: https://img.shields.io/gittip/SuperID.svg?style=flat-square
+[gittip-url]: https://www.gittip.com/SuperID/
+[david-image]: https://img.shields.io/david/SuperID/super-cache.svg?style=flat-square
+[david-url]: https://david-dm.org/SuperID/super-cache
+[node-image]: https://img.shields.io/badge/node.js-%3E=_4.0-green.svg?style=flat-square
+[node-url]: http://nodejs.org/download/
+[download-image]: https://img.shields.io/npm/dm/super-cache.svg?style=flat-square
+[download-url]: https://npmjs.org/package/super-cache
+
 
 # super-cache
 Node.js缓存管理模块，支持自定义存储引擎
