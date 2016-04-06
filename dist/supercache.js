@@ -97,7 +97,7 @@ module.exports = function (name) {
   return debug('super-cache:' + name);
 };
 
-},{"debug":14}],4:[function(require,module,exports){
+},{"debug":12}],4:[function(require,module,exports){
 /**
  * Super-Cache
  *
@@ -331,7 +331,7 @@ CacheManager.prototype.delete = function (name, callback) {
 
 module.exports = CacheManager;
 
-},{"./call":2,"./debug":3,"./store/memory":6,"events":8,"util":13}],5:[function(require,module,exports){
+},{"./call":2,"./debug":3,"./store/memory":6,"events":7,"util":11}],5:[function(require,module,exports){
 (function (process){
 /**
  * Super-Cache
@@ -339,12 +339,7 @@ module.exports = CacheManager;
  * @author Zongmin Lei <leizongmin@gmail.com>
  */
 
-var hasLocalStorage = require('has-localstorage');
-var LocalStorage = require('node-localstorage').LocalStorage;
 var debug = require('../debug')('LocalStore');
-
-
-debug('hasLocalStorage=%s', hasLocalStorage());
 
 
 var DEFAULT_TYPE = 'local';
@@ -357,9 +352,9 @@ var DEFAULT_PROBABILITY = 0.01;
 function getStorage (type, dir) {
   type = type.toLowerCase();
   if (type === 'local') {
-    return hasLocalStorage() ? localStorage : new LocalStorage(dir);
+    return LocalStore.$LocalStorage ? new LocalStore.$LocalStorage(dir) : localStorage;
   } else if (type === 'session') {
-    return hasLocalStorage() ? sessionStorage : new LocalStorage(dir);
+    return LocalStore.$LocalStorage ? new LocalStore.$LocalStorage(dir) : sessionStorage;
   } else {
     throw new Error('unsupport storage type `' + type + '`');
   }
@@ -549,7 +544,7 @@ LocalStore.prototype._gc = function () {
 module.exports = LocalStore;
 
 }).call(this,require('_process'))
-},{"../debug":3,"_process":11,"has-localstorage":17,"node-localstorage":18}],6:[function(require,module,exports){
+},{"../debug":3,"_process":9}],6:[function(require,module,exports){
 (function (process){
 /**
  * Super-Cache
@@ -673,9 +668,7 @@ MemoryStore.prototype._gc = function () {
 module.exports = MemoryStore;
 
 }).call(this,require('_process'))
-},{"../debug":3,"_process":11}],7:[function(require,module,exports){
-
-},{}],8:[function(require,module,exports){
+},{"../debug":3,"_process":9}],7:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -975,7 +968,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -1000,235 +993,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],10:[function(require,module,exports){
-(function (process){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-// resolves . and .. elements in a path array with directory names there
-// must be no slashes, empty elements, or device names (c:\) in the array
-// (so also no leading and trailing slashes - it does not distinguish
-// relative and absolute paths)
-function normalizeArray(parts, allowAboveRoot) {
-  // if the path tries to go above the root, `up` ends up > 0
-  var up = 0;
-  for (var i = parts.length - 1; i >= 0; i--) {
-    var last = parts[i];
-    if (last === '.') {
-      parts.splice(i, 1);
-    } else if (last === '..') {
-      parts.splice(i, 1);
-      up++;
-    } else if (up) {
-      parts.splice(i, 1);
-      up--;
-    }
-  }
-
-  // if the path is allowed to go above the root, restore leading ..s
-  if (allowAboveRoot) {
-    for (; up--; up) {
-      parts.unshift('..');
-    }
-  }
-
-  return parts;
-}
-
-// Split a filename into [root, dir, basename, ext], unix version
-// 'root' is just a slash, or nothing.
-var splitPathRe =
-    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
-var splitPath = function(filename) {
-  return splitPathRe.exec(filename).slice(1);
-};
-
-// path.resolve([from ...], to)
-// posix version
-exports.resolve = function() {
-  var resolvedPath = '',
-      resolvedAbsolute = false;
-
-  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
-    var path = (i >= 0) ? arguments[i] : process.cwd();
-
-    // Skip empty and invalid entries
-    if (typeof path !== 'string') {
-      throw new TypeError('Arguments to path.resolve must be strings');
-    } else if (!path) {
-      continue;
-    }
-
-    resolvedPath = path + '/' + resolvedPath;
-    resolvedAbsolute = path.charAt(0) === '/';
-  }
-
-  // At this point the path should be resolved to a full absolute path, but
-  // handle relative paths to be safe (might happen when process.cwd() fails)
-
-  // Normalize the path
-  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
-    return !!p;
-  }), !resolvedAbsolute).join('/');
-
-  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
-};
-
-// path.normalize(path)
-// posix version
-exports.normalize = function(path) {
-  var isAbsolute = exports.isAbsolute(path),
-      trailingSlash = substr(path, -1) === '/';
-
-  // Normalize the path
-  path = normalizeArray(filter(path.split('/'), function(p) {
-    return !!p;
-  }), !isAbsolute).join('/');
-
-  if (!path && !isAbsolute) {
-    path = '.';
-  }
-  if (path && trailingSlash) {
-    path += '/';
-  }
-
-  return (isAbsolute ? '/' : '') + path;
-};
-
-// posix version
-exports.isAbsolute = function(path) {
-  return path.charAt(0) === '/';
-};
-
-// posix version
-exports.join = function() {
-  var paths = Array.prototype.slice.call(arguments, 0);
-  return exports.normalize(filter(paths, function(p, index) {
-    if (typeof p !== 'string') {
-      throw new TypeError('Arguments to path.join must be strings');
-    }
-    return p;
-  }).join('/'));
-};
-
-
-// path.relative(from, to)
-// posix version
-exports.relative = function(from, to) {
-  from = exports.resolve(from).substr(1);
-  to = exports.resolve(to).substr(1);
-
-  function trim(arr) {
-    var start = 0;
-    for (; start < arr.length; start++) {
-      if (arr[start] !== '') break;
-    }
-
-    var end = arr.length - 1;
-    for (; end >= 0; end--) {
-      if (arr[end] !== '') break;
-    }
-
-    if (start > end) return [];
-    return arr.slice(start, end - start + 1);
-  }
-
-  var fromParts = trim(from.split('/'));
-  var toParts = trim(to.split('/'));
-
-  var length = Math.min(fromParts.length, toParts.length);
-  var samePartsLength = length;
-  for (var i = 0; i < length; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      samePartsLength = i;
-      break;
-    }
-  }
-
-  var outputParts = [];
-  for (var i = samePartsLength; i < fromParts.length; i++) {
-    outputParts.push('..');
-  }
-
-  outputParts = outputParts.concat(toParts.slice(samePartsLength));
-
-  return outputParts.join('/');
-};
-
-exports.sep = '/';
-exports.delimiter = ':';
-
-exports.dirname = function(path) {
-  var result = splitPath(path),
-      root = result[0],
-      dir = result[1];
-
-  if (!root && !dir) {
-    // No dirname whatsoever
-    return '.';
-  }
-
-  if (dir) {
-    // It has a dirname, strip trailing slash
-    dir = dir.substr(0, dir.length - 1);
-  }
-
-  return root + dir;
-};
-
-
-exports.basename = function(path, ext) {
-  var f = splitPath(path)[2];
-  // TODO: make this comparison case-insensitive on windows?
-  if (ext && f.substr(-1 * ext.length) === ext) {
-    f = f.substr(0, f.length - ext.length);
-  }
-  return f;
-};
-
-
-exports.extname = function(path) {
-  return splitPath(path)[3];
-};
-
-function filter (xs, f) {
-    if (xs.filter) return xs.filter(f);
-    var res = [];
-    for (var i = 0; i < xs.length; i++) {
-        if (f(xs[i], i, xs)) res.push(xs[i]);
-    }
-    return res;
-}
-
-// String.prototype.substr - negative index don't work in IE8
-var substr = 'ab'.substr(-1) === 'b'
-    ? function (str, start, len) { return str.substr(start, len) }
-    : function (str, start, len) {
-        if (start < 0) start = str.length + start;
-        return str.substr(start, len);
-    }
-;
-
-}).call(this,require('_process'))
-},{"_process":11}],11:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1321,14 +1086,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],12:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],13:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -1918,7 +1683,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":12,"_process":11,"inherits":9}],14:[function(require,module,exports){
+},{"./support/isBuffer":10,"_process":9,"inherits":8}],12:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -2088,7 +1853,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":15}],15:[function(require,module,exports){
+},{"./debug":13}],13:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -2287,7 +2052,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":16}],16:[function(require,module,exports){
+},{"ms":14}],14:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -2414,339 +2179,4 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],17:[function(require,module,exports){
-/**
- * # hasLocalStorage()
- *
- * returns `true` or `false` depending on whether localStorage is supported or not.
- * Beware that some browsers like Safari do not support localStorage in private mode.
- *
- * inspired by this cappuccino commit
- * https://github.com/cappuccino/cappuccino/commit/063b05d9643c35b303568a28809e4eb3224f71ec
- *
- * @returns {Boolean}
- */
-function hasLocalStorage() {
-  try {
-
-    // we've to put this in here. I've seen Firefox throwing `Security error: 1000`
-    // when cookies have been disabled
-    if (typeof localStorage === 'undefined') {
-      return false;
-    }
-
-    // Just because localStorage exists does not mean it works. In particular it might be disabled
-    // as it is when Safari's private browsing mode is active.
-    localStorage.setItem('Storage-Test', '1');
-
-    // that should not happen ...
-    if (localStorage.getItem('Storage-Test') !== '1') {
-      return false;
-    }
-
-    // okay, let's clean up if we got here.
-    localStorage.removeItem('Storage-Test');
-  } catch (_error) {
-
-    // in case of an error, like Safari's Private Mode, return false
-    return false;
-  }
-
-  // we're good.
-  return true;
-}
-
-
-if (typeof exports === 'object') {
-  module.exports = hasLocalStorage;
-}
-
-},{}],18:[function(require,module,exports){
-(function (process){
-// Generated by CoffeeScript 1.9.0
-(function() {
-  var JSONStorage, LocalStorage, QUOTA_EXCEEDED_ERR, StorageEvent, events, fs, path, _emptyDirectory, _rm,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    __hasProp = {}.hasOwnProperty;
-
-  path = require('path');
-
-  fs = require('fs');
-
-  events = require('events');
-
-  _emptyDirectory = function(target) {
-    var p, _i, _len, _ref, _results;
-    _ref = fs.readdirSync(target);
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      p = _ref[_i];
-      _results.push(_rm(path.join(target, p)));
-    }
-    return _results;
-  };
-
-  _rm = function(target) {
-    if (fs.statSync(target).isDirectory()) {
-      _emptyDirectory(target);
-      return fs.rmdirSync(target);
-    } else {
-      return fs.unlinkSync(target);
-    }
-  };
-
-  QUOTA_EXCEEDED_ERR = (function(_super) {
-    __extends(QUOTA_EXCEEDED_ERR, _super);
-
-    function QUOTA_EXCEEDED_ERR(_at_message) {
-      this.message = _at_message != null ? _at_message : 'Unknown error.';
-      if (Error.captureStackTrace != null) {
-        Error.captureStackTrace(this, this.constructor);
-      }
-      this.name = this.constructor.name;
-    }
-
-    QUOTA_EXCEEDED_ERR.prototype.toString = function() {
-      return this.name + ": " + this.message;
-    };
-
-    return QUOTA_EXCEEDED_ERR;
-
-  })(Error);
-
-  StorageEvent = (function() {
-    function StorageEvent(_at_key, _at_oldValue, _at_newValue, _at_url, _at_storageArea) {
-      this.key = _at_key;
-      this.oldValue = _at_oldValue;
-      this.newValue = _at_newValue;
-      this.url = _at_url;
-      this.storageArea = _at_storageArea != null ? _at_storageArea : 'localStorage';
-    }
-
-    return StorageEvent;
-
-  })();
-
-  LocalStorage = (function(_super) {
-    var MetaKey, createMap;
-
-    __extends(LocalStorage, _super);
-
-    function LocalStorage(_at_location, _at_quota) {
-      this.location = _at_location;
-      this.quota = _at_quota != null ? _at_quota : 5 * 1024 * 1024;
-      if (!(this instanceof LocalStorage)) {
-        return new LocalStorage(this.location, this.quota);
-      }
-      this.length = 0;
-      this.bytesInUse = 0;
-      this.keys = [];
-      this.metaKeyMap = createMap();
-      this.eventUrl = "pid:" + process.pid;
-      this._init();
-      this.QUOTA_EXCEEDED_ERR = QUOTA_EXCEEDED_ERR;
-    }
-
-    MetaKey = (function() {
-      function MetaKey(_at_key, _at_index) {
-        this.key = _at_key;
-        this.index = _at_index;
-        if (!(this instanceof MetaKey)) {
-          return new MetaKey(this.key, this.index);
-        }
-      }
-
-      return MetaKey;
-
-    })();
-
-    createMap = function() {
-      var Map;
-      Map = function() {};
-      Map.prototype = Object.create(null);
-      return new Map();
-    };
-
-    LocalStorage.prototype._init = function() {
-      var index, k, stat, _MetaKey, _decodedKey, _i, _keys, _len;
-      if (fs.existsSync(this.location)) {
-        if (!fs.statSync(this.location).isDirectory()) {
-          throw new Error("A file exists at the location '" + this.location + "' when trying to create/open localStorage");
-        }
-      }
-      this.bytesInUse = 0;
-      this.length = 0;
-      if (!fs.existsSync(this.location)) {
-        fs.mkdirSync(this.location);
-        return;
-      }
-      _keys = fs.readdirSync(this.location);
-      for (index = _i = 0, _len = _keys.length; _i < _len; index = ++_i) {
-        k = _keys[index];
-        _decodedKey = decodeURIComponent(k);
-        this.keys.push(_decodedKey);
-        _MetaKey = new MetaKey(k, index);
-        this.metaKeyMap[_decodedKey] = _MetaKey;
-        stat = this.getStat(k);
-        if ((stat != null ? stat.size : void 0) != null) {
-          _MetaKey.size = stat.size;
-          this.bytesInUse += stat.size;
-        }
-      }
-      return this.length = _keys.length;
-    };
-
-    LocalStorage.prototype.setItem = function(key, value) {
-      var encodedKey, evnt, existsBeforeSet, filename, hasListeners, metaKey, oldLength, oldValue, valueString, valueStringLength;
-      hasListeners = events.EventEmitter.listenerCount(this, 'storage');
-      oldValue = null;
-      if (hasListeners) {
-        oldValue = this.getItem(key);
-      }
-      key = key.toString();
-      encodedKey = encodeURIComponent(key);
-      filename = path.join(this.location, encodedKey);
-      valueString = value.toString();
-      valueStringLength = valueString.length;
-      metaKey = this.metaKeyMap[key];
-      existsBeforeSet = !!metaKey;
-      if (existsBeforeSet) {
-        oldLength = metaKey.size;
-      } else {
-        oldLength = 0;
-      }
-      if (this.bytesInUse - oldLength + valueStringLength > this.quota) {
-        throw new QUOTA_EXCEEDED_ERR();
-      }
-      fs.writeFileSync(filename, valueString, 'utf8');
-      if (!existsBeforeSet) {
-        metaKey = new MetaKey(encodedKey, (this.keys.push(key)) - 1);
-        metaKey.size = valueStringLength;
-        this.metaKeyMap[key] = metaKey;
-        this.length += 1;
-        this.bytesInUse += valueStringLength;
-      }
-      if (hasListeners) {
-        evnt = new StorageEvent(key, oldValue, value, this.eventUrl);
-        return this.emit('storage', evnt);
-      }
-    };
-
-    LocalStorage.prototype.getItem = function(key) {
-      var filename, metaKey;
-      key = key.toString();
-      metaKey = this.metaKeyMap[key];
-      if (!!metaKey) {
-        filename = path.join(this.location, metaKey.key);
-        return fs.readFileSync(filename, 'utf8');
-      } else {
-        return null;
-      }
-    };
-
-    LocalStorage.prototype.getStat = function(key) {
-      var filename;
-      key = key.toString();
-      filename = path.join(this.location, encodeURIComponent(key));
-      if (fs.existsSync(filename)) {
-        return fs.statSync(filename);
-      } else {
-        return null;
-      }
-    };
-
-    LocalStorage.prototype.removeItem = function(key) {
-      var evnt, filename, hasListeners, k, meta, metaKey, oldValue, v, _ref;
-      key = key.toString();
-      metaKey = this.metaKeyMap[key];
-      if (!!metaKey) {
-        hasListeners = events.EventEmitter.listenerCount(this, 'storage');
-        oldValue = null;
-        if (hasListeners) {
-          oldValue = this.getItem(key);
-        }
-        delete this.metaKeyMap[key];
-        this.length -= 1;
-        this.bytesInUse -= metaKey.size;
-        filename = path.join(this.location, metaKey.key);
-        this.keys.splice(metaKey.index, 1);
-        _ref = this.metaKeyMap;
-        for (k in _ref) {
-          v = _ref[k];
-          meta = this.metaKeyMap[k];
-          if (meta.index > metaKey.index) {
-            meta.index -= 1;
-          }
-        }
-        _rm(filename);
-        if (hasListeners) {
-          evnt = new StorageEvent(key, oldValue, null, this.eventUrl);
-          return this.emit('storage', evnt);
-        }
-      }
-    };
-
-    LocalStorage.prototype.key = function(n) {
-      return this.keys[n];
-    };
-
-    LocalStorage.prototype.clear = function() {
-      var evnt;
-      _emptyDirectory(this.location);
-      this.metaKeyMap = createMap();
-      this.keys = [];
-      this.length = 0;
-      this.bytesInUse = 0;
-      if (events.EventEmitter.listenerCount(this, 'storage')) {
-        evnt = new StorageEvent(null, null, null, this.eventUrl);
-        return this.emit('storage', evnt);
-      }
-    };
-
-    LocalStorage.prototype.getBytesInUse = function() {
-      return this.bytesInUse;
-    };
-
-    LocalStorage.prototype._deleteLocation = function() {
-      _rm(this.location);
-      this.metaKeyMap = {};
-      this.keys = [];
-      this.length = 0;
-      return this.bytesInUse = 0;
-    };
-
-    return LocalStorage;
-
-  })(events.EventEmitter);
-
-  JSONStorage = (function(_super) {
-    __extends(JSONStorage, _super);
-
-    function JSONStorage() {
-      return JSONStorage.__super__.constructor.apply(this, arguments);
-    }
-
-    JSONStorage.prototype.setItem = function(key, value) {
-      var newValue;
-      newValue = JSON.stringify(value);
-      return JSONStorage.__super__.setItem.call(this, key, newValue);
-    };
-
-    JSONStorage.prototype.getItem = function(key) {
-      return JSON.parse(JSONStorage.__super__.getItem.call(this, key));
-    };
-
-    return JSONStorage;
-
-  })(LocalStorage);
-
-  exports.LocalStorage = LocalStorage;
-
-  exports.JSONStorage = JSONStorage;
-
-  exports.QUOTA_EXCEEDED_ERR = QUOTA_EXCEEDED_ERR;
-
-}).call(this);
-
-}).call(this,require('_process'))
-},{"_process":11,"events":8,"fs":7,"path":10}]},{},[1]);
+},{}]},{},[1]);

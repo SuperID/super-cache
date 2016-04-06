@@ -10,6 +10,7 @@ var LocalStore = require('./lib/store/local');
 var MemcacheStore = require('./lib/store/memcache');
 var RedisStore = require('./lib/store/redis');
 
+LocalStore.$LocalStorage = require('node-localstorage').LocalStorage;
 
 module.exports = exports = CacheManager;
 exports.MemoryStore = MemoryStore;

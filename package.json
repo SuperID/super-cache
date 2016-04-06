@@ -25,7 +25,6 @@
   "homepage": "https://github.com/SuperID/super-cache",
   "dependencies": {
     "debug": "^2.1.3",
-    "has-localstorage": "^1.0.1",
     "ioredis": "^1.15.1",
     "memjs": "^0.9.0",
     "node-localstorage": "^1.1.2"

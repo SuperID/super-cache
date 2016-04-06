@@ -4,6 +4,7 @@ dist_dir="dist";
 entrance_file=browser.js
 output_file=$dist_dir/supercache.js
 output_mini_file=$dist_dir/supercache.min.js
+output_mini_file_source_map=$dist_dir/supercache.min.js.map
 
 mkdir $dist_dir
 
@@ -12,7 +13,8 @@ node ./node_modules/browserify/bin/cmd.js $entrance_file > $output_file
 echo "output $output_file"
 
 echo "minify..."
-node ./node_modules/uglify-js/bin/uglifyjs $output_file -o $output_mini_file
+node ./node_modules/uglify-js/bin/uglifyjs $output_file -o $output_mini_file --source-map $output_mini_file_source_map
 echo "output $output_mini_file"
 
+ls -lah dist
 echo "done."
