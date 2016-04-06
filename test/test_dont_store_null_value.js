@@ -61,7 +61,7 @@ describe('options #notNull', function () {
     });
   }
 
-  generateTest('MemoryStore', new SuperCache.MemoryStore());return;
+  generateTest('MemoryStore', new SuperCache.MemoryStore());
   generateTest('RedisStore', new SuperCache.RedisStore());
   generateTest('MemcacheStore', new SuperCache.MemcacheStore());
   generateTest('LocalStore', new SuperCache.LocalStore({

@@ -28,7 +28,7 @@ Node.js缓存管理模块，支持自定义存储引擎
 
 ## 在Node.js中使用
 
-1、安装：
+1、安装
 
 ```bash
 $ npm install super-cache --save
@@ -46,7 +46,7 @@ var cache = new SuperCache({ttl: 60});
 
 可供在浏览器上使用的文件存放在`dist`目录
 
-1、Shim方式：
+1、Shim方式
 
 ```html
 <script src="dist/supercache.js"></script>
@@ -55,7 +55,7 @@ var cache = new SuperCache({ttl: 60});
 </script>
 ```
 
-2、AMD方式：
+2、AMD方式
 
 ```html
 <script>
@@ -112,6 +112,18 @@ cache.define('key', function (name, callback) {
   callback(null, data, ttl);
   // 默认data=null或undefined时也会缓存结果，如果想不缓存，指定notNull参数
   callback(null, {ttl: ttl, notNull: true});
+});
+
+// key可以是一个正则表达式，或者是一个函数（返回true/fase）
+// 当查找没有匹配的字符串key时，则会依次判断正则表达式或者函数的key
+// 所以此类key数量不宜过多
+cache.define(/^xx/, function (name, callback) {
+  callback(null, data);
+});
+cache.define(function (name) {
+  return name.indexOf('xx') === 0;
+}, function (name, callback) {
+  callback(null, data);
 });
 ```
 

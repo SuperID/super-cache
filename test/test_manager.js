@@ -50,6 +50,79 @@ describe('CacheManager', function () {
     });
 
 
+    it('#' + title + ' define(name, getData) & get(name, callback) #regexp', function (done) {
+
+      var VALUE_1 = Math.random();
+      var VALUE_2 = Math.random();
+
+      var reg = new RegExp('^' + KEY.replace(/\-/g, '\\-').replace(/\./g, '\\.') + 'x1\\d$');
+      cache.define(reg, function (name, callback) {
+        var n = name.slice(KEY.length + 2);
+        if (n === '1') return callback(null, VALUE_1);
+        if (n === '2') return callback(null, VALUE_2);
+        callback(new Error('name should be ' + KEY + '1 or ' + KEY + '2'));
+      });
+
+      cache.get(KEY + 'x11', function (err, ret) {
+        should.equal(err, null);
+        ret.should.be.equal(VALUE_1);
+
+        cache.get(KEY + 'x12', function (err, ret) {
+          should.equal(err, null);
+          ret.should.be.equal(VALUE_2);
+
+          cache.get(KEY + 'x13', function (err, ret) {
+            should.exists(err);
+
+            cache.get(KEY + '3', function (err, ret) {
+              should.exists(err);
+
+              done();
+            });
+          });
+        });
+      });
+
+    });
+
+
+    it('#' + title + ' define(name, getData) & get(name, callback) #function', function (done) {
+
+      var VALUE_1 = Math.random();
+      var VALUE_2 = Math.random();
+
+      cache.define(function (name) {
+        return name.indexOf(KEY + 'x2') === 0;
+      }, function (name, callback) {
+        var n = name.slice(KEY.length + 2);
+        if (n === '1') return callback(null, VALUE_1);
+        if (n === '2') return callback(null, VALUE_2);
+        callback(new Error('name should be ' + KEY + '1 or ' + KEY + '2'));
+      });
+
+      cache.get(KEY + 'x21', function (err, ret) {
+        should.equal(err, null);
+        ret.should.be.equal(VALUE_1);
+
+        cache.get(KEY + 'x22', function (err, ret) {
+          should.equal(err, null);
+          ret.should.be.equal(VALUE_2);
+
+          cache.get(KEY + 'x23', function (err, ret) {
+            should.exists(err);
+
+            cache.get(KEY + '3', function (err, ret) {
+              should.exists(err);
+
+              done();
+            });
+          });
+        });
+      });
+
+    });
+
+
     it('#' + title + ' get(name, getData, callback)', function (done) {
 
       var VALUE_4 = Math.random();
