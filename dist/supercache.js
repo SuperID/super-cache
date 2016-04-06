@@ -116,7 +116,7 @@ function isEmptyValue (v) {
 }
 
 function getDefaultStore (name, options) {
-  var Store = require('./store/' + name);
+  var Store = require('./store/' + name.toLowerCase().replace(/store/g, '').trim());
   return new Store(options);
 }
 
@@ -156,6 +156,7 @@ function CacheManager (options) {
   this._store = options.store;
 
   this._keys = {};
+  this._fuzzyKeys = [];
 
   this._getMethodQueue = new CallQueue();
 }
@@ -204,8 +205,24 @@ CacheManager.prototype.define = function (name, getData) {
   if (typeof getData !== 'function') {
     throw new Error('parameter `getData` must be a function');
   }
-  this._keys[name] = getData;
   debug('define: name=%s', name);
+  if (typeof name === 'string') {
+    this._keys[name] = getData;
+  } else if (typeof name === 'function') {
+    this._fuzzyKeys.push({
+      isFunction: true,
+      test: name,
+      getData: getData,
+    });
+  } else if (name instanceof RegExp) {
+    this._fuzzyKeys.push({
+      isRegExp: true,
+      test: name,
+      getData: getData,
+    });
+  } else {
+    throw new TypeError('parameter `name` do not support type ' + (typeof name));
+  }
 };
 
 /**
@@ -247,6 +264,22 @@ CacheManager.prototype.get = function (name, getData, callback) {
   }
 };
 
+CacheManager.prototype._getDataFn = function (name) {
+  if (this._keys[name]) return this._keys[name];
+  for (var i = 0; i < this._fuzzyKeys.length; i++) {
+    var item = this._fuzzyKeys[i];
+    if (item.isFunction) {
+      if (item.test(name)) return item.getData;
+    } else if (item.isRegExp) {
+      item.test.lastIndex = 0;
+      if (item.test.test(name)) return item.getData;
+    }
+  }
+  return function (name, callback) {
+    callback(new Error('please define a function to get cache `' + name + '`'));
+  };
+};
+
 CacheManager.prototype._get = function (name, getData, callback) {
   var me = this;
   me._getCache(name, function (err, data) {
@@ -254,13 +287,7 @@ CacheManager.prototype._get = function (name, getData, callback) {
 
     if (!isEmptyValue(data)) return callback(null, data);
 
-    if (!getData) {
-      getData = function (name, callback) {
-        var fn = me._keys[name];
-        if (!fn) return callback(new Error('please define a function to get cache `' + name + '`'));
-        fn(name, callback);
-      };
-    }
+    if (!getData) getData = me._getDataFn(name);
 
     getData(name, function (err, data, options) {
       if (err) return callback(err);
