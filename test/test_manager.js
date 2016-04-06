@@ -18,8 +18,32 @@ describe('CacheManager', function () {
 
     it('#' + title + ' define(name, getData) & get(name, callback)', function (done) {
 
+      var cache = new SuperCache(options);
+      var KEY = 'test-key-' + Math.random();
+
       var VALUE_1 = Math.random();
       var VALUE_2 = Math.random();
+
+      var status = {
+        define1: false,
+        define2: false,
+        set1: false,
+        set2: false,
+      };
+      cache.on('define', function (name, getData) {
+        should.equal(typeof name, 'string');
+        should.equal(typeof getData, 'function');
+        if (name === KEY + '1') status.define1 = true;
+        else if (name === KEY + '2') status.define2 = true;
+        else throw new Error('unexcepted define key name: ' + name);
+      });
+      cache.on('set', function (name, value) {
+        should.equal(typeof name, 'string');
+        should.equal(typeof value, 'number');
+        if (name === KEY + '1') status.set1 = true;
+        else if (name === KEY + '2') status.set2 = true;
+        else throw new Error('unexcepted set key name: ' + name);
+      });
 
       cache.define(KEY + '1', function (name, calback) {
         name.should.equal(KEY + '1');
@@ -30,6 +54,9 @@ describe('CacheManager', function () {
         name.should.equal(KEY + '2');
         calback(null, VALUE_2);
       });
+
+      status.define1.should.be.equal(true);
+      status.define2.should.be.equal(true);
 
       cache.get(KEY + '1', function (err, ret) {
         should.equal(err, null);
@@ -42,13 +69,15 @@ describe('CacheManager', function () {
           cache.get(KEY + '3', function (err, ret) {
             should.exists(err);
 
+            status.set1.should.be.equal(true);
+            status.set2.should.be.equal(true);
+
             done();
           });
         });
       });
 
     });
-
 
     it('#' + title + ' define(name, getData) & get(name, callback) #regexp', function (done) {
 
