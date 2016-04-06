@@ -6,7 +6,8 @@
   "scripts": {
     "test": "mocha -t 30000",
     "coverage2": "istanbul cover _mocha -- -t 30000",
-    "coverage": "istanbul cover _mocha --report lcovonly -- -t 30000 -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+    "coverage": "istanbul cover _mocha --report lcovonly -- -t 30000 -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+    "prepublish": "npm run coverage && ./build"
   },
   "repository": {
     "type": "git",
