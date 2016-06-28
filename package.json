@@ -24,9 +24,10 @@
   },
   "homepage": "https://github.com/SuperID/super-cache",
   "dependencies": {
+    "async": "^2.0.0-rc.6",
     "debug": "^2.1.3",
-    "ioredis": "^1.15.1",
-    "memjs": "^0.9.0",
+    "ioredis": "^2.1.0",
+    "memjs": "^0.10.0",
     "node-localstorage": "^1.1.2"
   },
   "devDependencies": {
@@ -35,7 +36,7 @@
     "coveralls": "^2.11.9",
     "istanbul": "^0.4.2",
     "mocha": "^2.4.5",
-    "should": "^8.3.0",
-    "uglify-js": "^2.6.2"
+    "should": "^9.0.2",
+    "uglify-js": "^2.6.4"
   }
 }
