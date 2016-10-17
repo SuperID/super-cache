@@ -36,7 +36,7 @@
     "coveralls": "^2.11.9",
     "istanbul": "^0.4.2",
     "mocha": "^3.1.2",
-    "should": "^9.0.2",
+    "should": "^11.1.1",
     "uglify-js": "^2.6.4"
   }
 }
