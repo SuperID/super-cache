@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "async": "^2.1.2",
-    "browserify": "^13.0.0",
+    "browserify": "^13.3.0",
     "coveralls": "^2.11.14",
     "istanbul": "^0.4.2",
     "mocha": "^3.1.2",
