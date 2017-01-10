@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/SuperID/super-cache",
   "dependencies": {
-    "async": "^2.1.1",
+    "async": "^2.1.4",
     "debug": "^2.4.1",
     "ioredis": "^2.5.0",
     "memjs": "^0.10.0",
