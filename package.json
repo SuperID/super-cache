@@ -26,7 +26,7 @@
   "dependencies": {
     "async": "^2.1.1",
     "debug": "^2.4.1",
-    "ioredis": "^2.4.2",
+    "ioredis": "^2.5.0",
     "memjs": "^0.10.0",
     "node-localstorage": "^1.1.2"
   },
