@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha -t 30000",
-    "coverage2": "istanbul cover _mocha -- -t 30000",
-    "coverage": "istanbul cover _mocha --report lcovonly -- -t 30000 -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+    "coverage": "istanbul cover _mocha -- -t 30000",
+    "coverage2": "istanbul cover _mocha --report lcovonly -- -t 30000 -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "browser": "./build && open test_browser/test.html",
-    "prepublish": "npm run coverage && ./build"
+    "prepublish": "npm run coverage2 && ./build"
   },
   "repository": {
     "type": "git",
